@@ -35,7 +35,9 @@ Desenvolver uma aplicação capaz de:
 
 ## Arquitetura
 
-A aplicação será organizada de forma modular, separando as responsabilidades de integração com serviços externos, processamento de dados, persistência e exposição das informações através dos endpoints REST.
+A aplicação está sendo organizada de forma modular, separando as responsabilidades de persistência de dados, serialização e exposição das informações através dos endpoints REST.
+
+A integração com serviços externos será isolada em uma camada de serviços, mantendo a lógica de comunicação com a API OpenWeather separada das Views.
 
 ## Banco de dados
 
@@ -108,9 +110,65 @@ Para aplicar migrations:
 python manage.py migrate
 ```
 
+### Modelo meteorológico
+
+Foi criado o modelo `WeatherRecord`, responsável por representar os registros meteorológicos armazenados no banco de dados.
+
+O modelo contempla informações de cidade, país, temperatura, sensação térmica, umidade, pressão atmosférica, velocidade do vento, descrição e datas de observação e criação.
+
+A tabela foi criada através de migrations do Django.
+
+A persistência foi validada utilizando o Django ORM, com inserção e consulta de registros no PostgreSQL.
+
 ## Documentação da API
 
-A documentação interativa dos endpoints será disponibilizada através do Swagger UI, utilizando OpenAPI.
+## API REST
+
+A API REST foi desenvolvida utilizando Django REST Framework, permitindo consultar os registros meteorológicos armazenados no PostgreSQL.
+
+### Listar registros meteorológicos
+
+**Endpoint:** `GET /api/weather/`
+
+Retorna todos os registros meteorológicos cadastrados.
+
+**Exemplo de resposta:**
+
+```json
+[
+  {
+    "id": 1,
+    "city": "Florianópolis",
+    "country": "BR",
+    "temperature": "24.19",
+    "feels_like": "24.78",
+    "humidity": 81,
+    "pressure": 1010,
+    "wind_speed": "6.69",
+    "description": "nublado",
+    "observed_at": "2026-11-17T18:43:39-03:00",
+    "created_at": "2026-11-17T18:43:48-03:00"
+  }
+]
+```
+
+### Filtrar registros por cidade
+
+O endpoint permite filtrar os registros através do parâmetro de consulta `city`.
+
+**Exemplo:**
+
+`GET /api/weather/?city=Florianópolis`
+
+O filtro utiliza correspondência parcial e não diferencia letras maiúsculas e minúsculas.
+
+Quando o parâmetro `city` não é informado, todos os registros são retornados.
+
+Caso nenhum registro corresponda ao filtro, a API retorna uma lista vazia.
+
+### Documentação OpenAPI
+
+A documentação interativa dos endpoints será disponibilizada através do Swagger UI, utilizando OpenAPI e drf-spectacular.
 
 ## Execução
 
