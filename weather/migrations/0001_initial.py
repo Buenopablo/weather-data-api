@@ -7,24 +7,31 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='WeatherRecord',
+            name="WeatherRecord",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('city', models.CharField(db_index=True, max_length=100)),
-                ('country', models.CharField(max_length=2)),
-                ('temperature', models.DecimalField(decimal_places=2, max_digits=7)),
-                ('feels_like', models.DecimalField(decimal_places=2, max_digits=7)),
-                ('humidity', models.IntegerField()),
-                ('pressure', models.IntegerField()),
-                ('wind_speed', models.DecimalField(decimal_places=2, max_digits=7)),
-                ('description', models.CharField(max_length=255)),
-                ('observed_at', models.DateTimeField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("city", models.CharField(db_index=True, max_length=100)),
+                ("country", models.CharField(max_length=2)),
+                ("temperature", models.DecimalField(decimal_places=2, max_digits=7)),
+                ("feels_like", models.DecimalField(decimal_places=2, max_digits=7)),
+                ("humidity", models.IntegerField()),
+                ("pressure", models.IntegerField()),
+                ("wind_speed", models.DecimalField(decimal_places=2, max_digits=7)),
+                ("description", models.CharField(max_length=255)),
+                ("observed_at", models.DateTimeField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
     ]

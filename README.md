@@ -1,6 +1,6 @@
 # Weather Data API
 
-API REST desenvolvida em Python com Django REST Framework para coleta, armazenamento e consulta de dados meteorológicos utilizando a API pública da OpenWeather.
+API REST desenvolvida em Python com Django REST Framework para coleta, armazenamento e consulta de dados meteorológicos utilizando a API pública da [OpenWeather](https://openweathermap.org/api).
 
 O projeto tem como objetivo integrar uma fonte externa de dados, processar as informações recebidas e armazená-las em um banco de dados relacional, disponibilizando endpoints para consulta do histórico meteorológico.
 
@@ -35,9 +35,15 @@ Desenvolver uma aplicação capaz de:
 
 ## Arquitetura
 
-A aplicação está sendo organizada de forma modular, separando as responsabilidades de persistência de dados, serialização e exposição das informações através dos endpoints REST.
+A aplicação está organizada de forma modular, separando as responsabilidades de integração externa, persistência de dados, serialização e exposição das informações através dos endpoints REST.
 
-A integração com serviços externos será isolada em uma camada de serviços, mantendo a lógica de comunicação com a API OpenWeather separada das Views.
+A estrutura utiliza as seguintes responsabilidades:
+
+- **Services:** responsável pela comunicação com a API OpenWeather, tratamento de erros e transformação dos dados recebidos.
+- **Models:** responsável pela representação e persistência dos registros meteorológicos no PostgreSQL.
+- **Serializers:** responsável pela validação e conversão dos dados entre objetos Python e JSON.
+- **Views:** responsável por coordenar as operações HTTP e integrar os serviços, serializers e models.
+- **URLs:** responsável pelo mapeamento dos endpoints da aplicação.
 
 ## Banco de dados
 
@@ -102,7 +108,7 @@ As configurações incluem:
 - Usuário e senha.
 - Host e porta de conexão.
 
-As migrations iniciais do Django foram executadas com sucesso, criando as tabelas necessárias para os recursos internos do framework.
+As migrations iniciais do Django foram executadas com sucesso, criando as tabelas necessárias para os recursos internos do framework e para o modelo meteorológico.
 
 Para aplicar migrations:
 
@@ -114,21 +120,30 @@ python manage.py migrate
 
 Foi criado o modelo `WeatherRecord`, responsável por representar os registros meteorológicos armazenados no banco de dados.
 
-O modelo contempla informações de cidade, país, temperatura, sensação térmica, umidade, pressão atmosférica, velocidade do vento, descrição e datas de observação e criação.
+O modelo contempla as seguintes informações:
+
+- Cidade e país.
+- Temperatura e sensação térmica.
+- Umidade.
+- Pressão atmosférica.
+- Velocidade do vento.
+- Descrição das condições meteorológicas.
+- Data e hora da observação.
+- Data e hora de criação do registro.
 
 A tabela foi criada através de migrations do Django.
 
 A persistência foi validada utilizando o Django ORM, com inserção e consulta de registros no PostgreSQL.
 
-## Documentação da API
-
 ## API REST
 
-A API REST foi desenvolvida utilizando Django REST Framework, permitindo consultar os registros meteorológicos armazenados no PostgreSQL.
+A API REST foi desenvolvida utilizando Django REST Framework, permitindo consultar os registros meteorológicos armazenados no PostgreSQL e realizar novas coletas através da OpenWeather.
 
 ### Listar registros meteorológicos
 
-**Endpoint:** `GET /api/weather/`
+**Método:** `GET`
+
+**Endpoint:** `/api/weather/`
 
 Retorna todos os registros meteorológicos cadastrados.
 
@@ -158,7 +173,9 @@ O endpoint permite filtrar os registros através do parâmetro de consulta `city
 
 **Exemplo:**
 
-`GET /api/weather/?city=Florianópolis`
+```http
+GET /api/weather/?city=Florianópolis
+```
 
 O filtro utiliza correspondência parcial e não diferencia letras maiúsculas e minúsculas.
 
@@ -166,14 +183,103 @@ Quando o parâmetro `city` não é informado, todos os registros são retornados
 
 Caso nenhum registro corresponda ao filtro, a API retorna uma lista vazia.
 
-### Documentação OpenAPI
+### Coletar dados meteorológicos
 
-A documentação interativa dos endpoints será disponibilizada através do Swagger UI, utilizando OpenAPI e drf-spectacular.
+**Método:** `POST`
+
+**Endpoint:** `/api/weather/collect/`
+
+Realiza uma consulta à API OpenWeather para obter informações meteorológicas da cidade informada e armazena os dados retornados no PostgreSQL.
+
+**Exemplo de requisição:**
+
+```http
+POST /api/weather/collect/
+Content-Type: application/json
+```
+
+```json
+{
+  "city": "Florianópolis"
+}
+```
+
+**Exemplo de resposta:**
+
+```json
+{
+  "id": 2,
+  "city": "Florianópolis",
+  "country": "BR",
+  "temperature": "26.43",
+  "feels_like": "26.43",
+  "humidity": 80,
+  "pressure": 1008,
+  "wind_speed": "7.20",
+  "description": "algumas nuvens",
+  "observed_at": "2026-11-18T10:50:33-03:00",
+  "created_at": "2026-11-18T10:52:12-03:00"
+}
+```
+
+Os valores retornados podem variar conforme as condições meteorológicas no momento da consulta.
+
+**Respostas HTTP:**
+
+| Código                  | Descrição                                                    |
+| ----------------------- | ------------------------------------------------------------ |
+| 201 Created             | Dados coletados e armazenados com sucesso                    |
+| 400 Bad Request         | Nome da cidade ausente ou inválido                           |
+| 404 Not Found           | Cidade não encontrada na OpenWeather                         |
+| 502 Bad Gateway         | Falha de autenticação na integração com a OpenWeather        |
+| 503 Service Unavailable | Falha de comunicação ou indisponibilidade do serviço externo |
+
+### Integração com OpenWeather
+
+A integração utiliza o endpoint de consulta meteorológica atual da OpenWeather:
+
+`https://api.openweathermap.org/data/2.5/weather`
+
+Os parâmetros utilizados são:
+
+| Parâmetro | Descrição                     |
+| --------- | ----------------------------- |
+| `q`       | Nome da cidade consultada     |
+| `appid`   | Chave de autenticação da API  |
+| `units`   | Unidade de medida (`metric`)  |
+| `lang`    | Idioma da descrição (`pt_br`) |
+
+A chave de API é configurada através da variável de ambiente `OPENWEATHER_API_KEY`, armazenada no arquivo `.env`.
+
+A aplicação trata erros de comunicação, timeout, autenticação, limite de requisições e cidades não encontradas.
+
+## Documentação OpenAPI
+
+A documentação interativa dos endpoints será disponibilizada através do Swagger UI, utilizando OpenAPI e `drf-spectacular`.
 
 ## Execução
 
-As instruções de instalação, configuração do ambiente, inicialização dos serviços e utilização da API serão documentadas conforme o desenvolvimento do projeto.
+As instruções completas de instalação, configuração do ambiente, inicialização da aplicação e utilização da API serão documentadas conforme a conclusão das etapas de desenvolvimento.
 
 ## Status do projeto
 
 Em desenvolvimento.
+
+### Implementado
+
+- Configuração do Django e Django REST Framework.
+- Configuração do PostgreSQL com Docker Compose.
+- Modelagem e persistência dos dados meteorológicos.
+- Integração com a API OpenWeather.
+- Transformação dos dados recebidos.
+- Tratamento de erros da integração externa.
+- Endpoint GET para listagem e filtro por cidade.
+- Endpoint POST para coleta e armazenamento de dados.
+- Validação e persistência utilizando Django REST Framework.
+
+### Próximas etapas
+
+- Implementação de testes automatizados.
+- Configuração da documentação Swagger/OpenAPI.
+- Containerização da aplicação Django.
+- Finalização das instruções de execução.
