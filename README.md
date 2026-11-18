@@ -2,7 +2,7 @@
 
 API REST desenvolvida em Python com Django REST Framework para coleta, armazenamento e consulta de dados meteorológicos utilizando a API pública da [OpenWeather](https://openweathermap.org/api).
 
-O projeto tem como objetivo integrar uma fonte externa de dados, processar as informações recebidas e armazená-las em um banco de dados relacional, disponibilizando endpoints para consulta do histórico meteorológico.
+O projeto integra uma fonte externa de dados, processa as informações recebidas e armazena os registros em um banco de dados relacional PostgreSQL, disponibilizando endpoints REST para consulta do histórico meteorológico.
 
 ## Objetivo
 
@@ -37,13 +37,11 @@ Desenvolver uma aplicação capaz de:
 
 A aplicação está organizada de forma modular, separando as responsabilidades de integração externa, persistência de dados, serialização e exposição das informações através dos endpoints REST.
 
-A estrutura utiliza as seguintes responsabilidades:
-
-- **Services:** responsável pela comunicação com a API OpenWeather, tratamento de erros e transformação dos dados recebidos.
-- **Models:** responsável pela representação e persistência dos registros meteorológicos no PostgreSQL.
-- **Serializers:** responsável pela validação e conversão dos dados entre objetos Python e JSON.
-- **Views:** responsável por coordenar as operações HTTP e integrar os serviços, serializers e models.
-- **URLs:** responsável pelo mapeamento dos endpoints da aplicação.
+- **Services:** comunicação com a API OpenWeather, tratamento de erros e transformação dos dados recebidos.
+- **Models:** representação e persistência dos registros meteorológicos no PostgreSQL.
+- **Serializers:** validação e conversão dos dados entre objetos Python e JSON.
+- **Views:** coordenação das operações HTTP e integração entre serviços, serializers e models.
+- **URLs:** mapeamento dos endpoints da aplicação.
 
 ## Banco de dados
 
@@ -60,25 +58,13 @@ O projeto utiliza PostgreSQL 17, executado em container Docker através do Docke
 | Porta interna | 5432          |
 | Container     | weather-db    |
 
-### Executar o banco de dados
+### Persistência dos dados
 
-Na raiz do projeto, execute:
+Os dados são armazenados em um volume Docker nomeado:
 
-```bash
-docker compose up -d
-```
+`postgres_data`
 
-Para verificar o status do container:
-
-```bash
-docker compose ps
-```
-
-Para consultar os logs:
-
-```bash
-docker compose logs db
-```
+Isso permite preservar os dados mesmo após a parada ou recriação do container.
 
 ### Conexão pelo pgAdmin
 
@@ -89,44 +75,6 @@ Para acessar o banco utilizando o pgAdmin:
 - Database: `weather_db`
 - Username: `weather_user`
 - Password: definida no arquivo `.env`
-
-### Persistência dos dados
-
-Os dados são armazenados em um volume Docker nomeado:
-
-`postgres_data`
-
-Isso permite preservar os dados mesmo após a parada ou recriação do container.
-
-### Integração com Django
-
-A conexão entre Django e PostgreSQL é configurada através de variáveis de ambiente, utilizando `python-decouple`.
-
-As configurações incluem:
-
-- Nome do banco de dados.
-- Usuário e senha.
-- Host e porta de conexão.
-
-As migrations iniciais do Django foram executadas com sucesso, criando as tabelas necessárias para os recursos internos do framework e para o modelo meteorológico.
-
-Para aplicar migrations:
-
-```bash
-python manage.py migrate
-```
-
-**### Extensão Unaccent**
-
-O projeto utiliza a extensão `unaccent` do PostgreSQL para permitir consultas por cidades sem distinção de acentos.
-
-Após criar o banco de dados, habilite a extensão executando:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS unaccent;
-```
-
-O comando deve ser executado no banco `weather_db` antes de utilizar o filtro por cidade.
 
 ### Modelo meteorológico
 
@@ -145,43 +93,9 @@ O modelo contempla as seguintes informações:
 
 A tabela foi criada através de migrations do Django.
 
-A persistência foi validada utilizando o Django ORM, com inserção e consulta de registros no PostgreSQL.
-
 ## API REST
 
 A API REST foi desenvolvida utilizando Django REST Framework, permitindo consultar os registros meteorológicos armazenados no PostgreSQL e realizar novas coletas através da OpenWeather.
-
-## Testes automatizados
-
-O projeto utiliza o framework de testes nativo do Django, com suporte do `unittest.mock` para simular a integração com serviços externos.
-
-Os testes verificam o comportamento dos endpoints REST, o tratamento de erros e a persistência dos registros no banco de dados.
-
-### Executar os testes
-
-Na raiz do projeto, execute:
-
-```bash
-python manage.py test weather
-```
-
-O Django cria um banco de dados exclusivo para os testes, executa os cenários e o remove ao finalizar.
-
-### Cenários testados
-
-| Teste                             | Resultado esperado           |
-| --------------------------------- | ---------------------------- |
-| Coleta meteorológica bem-sucedida | HTTP 201 Created             |
-| Cidade não encontrada             | HTTP 404 Not Found           |
-| Serviço externo indisponível      | HTTP 503 Service Unavailable |
-| Listagem de registros             | HTTP 200 OK                  |
-| Filtro de registros por cidade    | HTTP 200 OK                  |
-
-### Simulação de serviços externos
-
-A integração com a OpenWeather é simulada utilizando `unittest.mock.patch`, permitindo testar os diferentes cenários sem realizar chamadas reais à API externa.
-
-Os testes também verificam se os registros são persistidos corretamente no banco de dados de teste.
 
 ### Listar registros meteorológicos
 
@@ -191,13 +105,13 @@ Os testes também verificam se os registros são persistidos corretamente no ban
 
 Retorna todos os registros meteorológicos cadastrados.
 
-### Filtro de cidades sem distinção de acentos
+### Filtrar registros por cidade
 
 O endpoint `GET /api/weather/` permite filtrar os registros pelo nome da cidade utilizando o parâmetro `city`.
 
 A busca utiliza a extensão `unaccent` do PostgreSQL em conjunto com `icontains`, permitindo localizar cidades independentemente de acentos e letras maiúsculas ou minúsculas.
 
-Exemplos de consultas que retornam os mesmos resultados:
+Exemplos:
 
 ```http
 GET /api/weather/?city=Florianópolis
@@ -205,51 +119,7 @@ GET /api/weather/?city=Florianopolis
 GET /api/weather/?city=FLORIANOPOLIS
 ```
 
-**Configuração da extensão**
-
-Para habilitar a funcionalidade, execute o seguinte comando no banco de dados:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS unaccent;
-```
-
-A extensão deve estar habilitada no banco utilizado pela aplicação.
-
-**Exemplo de resposta:**
-
-```json
-[
-  {
-    "id": 1,
-    "city": "Florianópolis",
-    "country": "BR",
-    "temperature": "24.19",
-    "feels_like": "24.78",
-    "humidity": 81,
-    "pressure": 1010,
-    "wind_speed": "6.69",
-    "description": "nublado",
-    "observed_at": "2026-11-17T18:43:39-03:00",
-    "created_at": "2026-11-17T18:43:48-03:00"
-  }
-]
-```
-
-### Filtrar registros por cidade
-
-O endpoint permite filtrar os registros através do parâmetro de consulta `city`.
-
-**Exemplo:**
-
-```http
-GET /api/weather/?city=Florianópolis
-```
-
-O filtro utiliza correspondência parcial e não diferencia letras maiúsculas e minúsculas.
-
-Quando o parâmetro `city` não é informado, todos os registros são retornados.
-
-Caso nenhum registro corresponda ao filtro, a API retorna uma lista vazia.
+O filtro utiliza correspondência parcial. Quando o parâmetro `city` não é informado, todos os registros são retornados. Caso nenhum registro corresponda ao filtro, a API retorna uma lista vazia.
 
 ### Coletar dados meteorológicos
 
@@ -292,7 +162,7 @@ Content-Type: application/json
 
 Os valores retornados podem variar conforme as condições meteorológicas no momento da consulta.
 
-**Respostas HTTP:**
+### Respostas HTTP
 
 | Código                  | Descrição                                                    |
 | ----------------------- | ------------------------------------------------------------ |
@@ -325,26 +195,168 @@ A aplicação trata erros de comunicação, timeout, autenticação, limite de r
 
 A API possui documentação interativa utilizando OpenAPI e drf-spectacular.
 
-A documentação pode ser acessada através dos seguintes endpoints:
-
-Swagger UI: /api/docs/
-
-OpenAPI Schema: /api/schema/
+| Recurso        | Endpoint       |
+| -------------- | -------------- |
+| Swagger UI     | `/api/docs/`   |
+| OpenAPI Schema | `/api/schema/` |
 
 O schema pode ser disponibilizado nos formatos YAML e JSON.
 
-## Execução
+## Testes automatizados
 
-As instruções completas de instalação, configuração do ambiente, inicialização da aplicação e utilização da API serão documentadas conforme a conclusão das etapas de desenvolvimento.
+O projeto utiliza o framework de testes nativo do Django, com suporte do `unittest.mock` para simular a integração com serviços externos.
+
+Os testes verificam o comportamento dos endpoints REST, o tratamento de erros e a persistência dos registros no banco de dados.
+
+### Cenários testados
+
+| Teste                             | Resultado esperado           |
+| --------------------------------- | ---------------------------- |
+| Coleta meteorológica bem-sucedida | HTTP 201 Created             |
+| Cidade não encontrada             | HTTP 404 Not Found           |
+| Serviço externo indisponível      | HTTP 503 Service Unavailable |
+| Listagem de registros             | HTTP 200 OK                  |
+| Filtro de registros por cidade    | HTTP 200 OK                  |
+
+A integração com a OpenWeather é simulada utilizando `unittest.mock.patch`, permitindo testar os diferentes cenários sem realizar chamadas reais à API externa.
+
+O Django cria um banco de dados exclusivo para os testes, executa os cenários e o remove ao finalizar.
+
+## Execução do projeto
+
+### Pré-requisitos
+
+- Docker.
+- Docker Compose.
+- Conta na [OpenWeather](https://openweathermap.org/) e chave de API.
+
+### 1. Clonar o repositório
+
+```bash
+git clone <URL_DO_REPOSITORIO>
+cd weather-data-api
+```
+
+### 2. Configurar as variáveis de ambiente
+
+Crie o arquivo `.env` a partir do exemplo disponibilizado:
+
+```bash
+cp .env.example .env
+```
+
+Configure as variáveis necessárias:
+
+```env
+SECRET_KEY=sua_secret_key
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+DB_NAME=weather_db
+DB_USER=weather_user
+DB_PASSWORD=sua_senha
+DB_HOST=localhost
+DB_PORT=5434
+
+OPENWEATHER_API_KEY=sua_chave_openweather
+```
+
+Substitua os valores de exemplo pelas suas configurações.
+
+**Importante:** o arquivo `.env` contém informações sensíveis e não deve ser versionado no Git.
+
+### 3. Construir e iniciar os containers
+
+Na raiz do projeto, execute:
+
+```bash
+docker compose up -d --build
+```
+
+O Docker Compose será responsável por construir a imagem da aplicação Django e iniciar os serviços:
+
+- `web`: aplicação Django.
+- `db`: banco de dados PostgreSQL.
+
+O serviço Django aguarda a inicialização saudável do PostgreSQL antes de iniciar.
+
+### 4. Habilitar a extensão Unaccent
+
+A aplicação utiliza a extensão `unaccent` do PostgreSQL para realizar buscas sem distinção de acentos.
+
+Execute o comando:
+
+```bash
+docker compose exec db psql -U weather_user -d weather_db -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
+```
+
+A extensão deve estar habilitada no banco utilizado pela aplicação.
+
+### 5. Executar as migrations
+
+Para criar as tabelas necessárias no banco de dados:
+
+```bash
+docker compose exec web python manage.py migrate
+```
+
+### 6. Verificar os containers
+
+```bash
+docker compose ps
+```
+
+Para consultar os logs da aplicação:
+
+```bash
+docker compose logs web
+```
+
+Para consultar os logs do banco:
+
+```bash
+docker compose logs db
+```
+
+### 7. Acessar a aplicação
+
+Após iniciar os serviços, a API estará disponível em:
+
+- API: `http://localhost:8000/api/weather/`
+- Swagger UI: `http://localhost:8000/api/docs/`
+- OpenAPI Schema: `http://localhost:8000/api/schema/`
+
+### 8. Executar os testes
+
+Com os containers em execução:
+
+```bash
+docker compose exec web python manage.py test weather
+```
+
+O Django executará os testes utilizando um banco de dados exclusivo para essa finalidade.
+
+### 9. Parar os containers
+
+Para parar os serviços:
+
+```bash
+docker compose down
+```
+
+Os dados do PostgreSQL permanecem armazenados no volume `postgres_data`.
+
+**Atenção:** evite utilizar `docker compose down -v` quando desejar preservar os dados, pois essa opção remove os volumes associados ao projeto.
 
 ## Status do projeto
 
-Em desenvolvimento.
+Implementação concluída para os requisitos propostos.
 
-### Implementado
+### Funcionalidades implementadas
 
 - Configuração do Django e Django REST Framework.
 - Configuração do PostgreSQL com Docker Compose.
+- Containerização da aplicação Django.
 - Modelagem e persistência dos dados meteorológicos.
 - Integração com a API OpenWeather.
 - Transformação dos dados recebidos.
@@ -354,9 +366,5 @@ Em desenvolvimento.
 - Validação e persistência utilizando Django REST Framework.
 - Testes automatizados dos endpoints e integração externa.
 - Documentação interativa da API com Swagger/OpenAPI.
-- Filtro de cidades sem distinção de acentos utilizando a extensão unaccent do PostgreSQL.
-
-### Próximas etapas
-
-- Containerização da aplicação Django.
-- Finalização das instruções de execução.
+- Filtro de cidades sem distinção de acentos utilizando a extensão `unaccent` do PostgreSQL.
+- Execução integrada da aplicação e banco de dados com Docker Compose.
