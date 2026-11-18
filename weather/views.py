@@ -1,7 +1,11 @@
 from rest_framework.generics import ListAPIView
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+
+from django.contrib.postgres.lookups import Unaccent
+from django.db.models import CharField
 
 from .models import WeatherRecord
-from .serializers import WeatherRecordSerializer
+from .serializers import WeatherCollectSerializer, WeatherRecordSerializer
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,6 +19,20 @@ from .services.exceptions import (
     OpenWeatherServiceError,
 )
 
+CharField.register_lookup(Unaccent)
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            name="city",
+            description="Filtra os registros pelo nome da cidade.",
+            required=False,
+            type=str,
+        ),
+    ],
+    responses=WeatherRecordSerializer(many=True),
+    description="Lista os registros meteorológicos, permitindo filtrar por cidade.",
+)
 
 class WeatherRecordListView(ListAPIView):
     queryset = WeatherRecord.objects.all()
@@ -25,12 +43,19 @@ class WeatherRecordListView(ListAPIView):
         city = self.request.query_params.get("city")
 
         if city:
-            queryset = queryset.filter(city__icontains=city)
+            queryset = queryset.filter(city__unaccent__icontains=city)
 
         return queryset
 
 
 class WeatherRecordCollectView(APIView):
+    @extend_schema(
+        request=WeatherCollectSerializer,
+        responses={
+            201: WeatherRecordSerializer,
+        },
+        description="Consulta a OpenWeather e armazena os dados meteorológicos da cidade.",
+    )
     def post(self, request):
         city = request.data.get("city")
 

@@ -116,6 +116,18 @@ Para aplicar migrations:
 python manage.py migrate
 ```
 
+**### Extensão Unaccent**
+
+O projeto utiliza a extensão `unaccent` do PostgreSQL para permitir consultas por cidades sem distinção de acentos.
+
+Após criar o banco de dados, habilite a extensão executando:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS unaccent;
+```
+
+O comando deve ser executado no banco `weather_db` antes de utilizar o filtro por cidade.
+
 ### Modelo meteorológico
 
 Foi criado o modelo `WeatherRecord`, responsável por representar os registros meteorológicos armazenados no banco de dados.
@@ -178,6 +190,30 @@ Os testes também verificam se os registros são persistidos corretamente no ban
 **Endpoint:** `/api/weather/`
 
 Retorna todos os registros meteorológicos cadastrados.
+
+### Filtro de cidades sem distinção de acentos
+
+O endpoint `GET /api/weather/` permite filtrar os registros pelo nome da cidade utilizando o parâmetro `city`.
+
+A busca utiliza a extensão `unaccent` do PostgreSQL em conjunto com `icontains`, permitindo localizar cidades independentemente de acentos e letras maiúsculas ou minúsculas.
+
+Exemplos de consultas que retornam os mesmos resultados:
+
+```http
+GET /api/weather/?city=Florianópolis
+GET /api/weather/?city=Florianopolis
+GET /api/weather/?city=FLORIANOPOLIS
+```
+
+**Configuração da extensão**
+
+Para habilitar a funcionalidade, execute o seguinte comando no banco de dados:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS unaccent;
+```
+
+A extensão deve estar habilitada no banco utilizado pela aplicação.
 
 **Exemplo de resposta:**
 
@@ -287,7 +323,15 @@ A aplicação trata erros de comunicação, timeout, autenticação, limite de r
 
 ## Documentação OpenAPI
 
-A documentação interativa dos endpoints será disponibilizada através do Swagger UI, utilizando OpenAPI e `drf-spectacular`.
+A API possui documentação interativa utilizando OpenAPI e drf-spectacular.
+
+A documentação pode ser acessada através dos seguintes endpoints:
+
+Swagger UI: /api/docs/
+
+OpenAPI Schema: /api/schema/
+
+O schema pode ser disponibilizado nos formatos YAML e JSON.
 
 ## Execução
 
@@ -309,9 +353,10 @@ Em desenvolvimento.
 - Endpoint POST para coleta e armazenamento de dados.
 - Validação e persistência utilizando Django REST Framework.
 - Testes automatizados dos endpoints e integração externa.
+- Documentação interativa da API com Swagger/OpenAPI.
+- Filtro de cidades sem distinção de acentos utilizando a extensão unaccent do PostgreSQL.
 
 ### Próximas etapas
 
-- Configuração da documentação Swagger/OpenAPI.
 - Containerização da aplicação Django.
 - Finalização das instruções de execução.
