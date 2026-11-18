@@ -139,6 +139,38 @@ A persistência foi validada utilizando o Django ORM, com inserção e consulta 
 
 A API REST foi desenvolvida utilizando Django REST Framework, permitindo consultar os registros meteorológicos armazenados no PostgreSQL e realizar novas coletas através da OpenWeather.
 
+## Testes automatizados
+
+O projeto utiliza o framework de testes nativo do Django, com suporte do `unittest.mock` para simular a integração com serviços externos.
+
+Os testes verificam o comportamento dos endpoints REST, o tratamento de erros e a persistência dos registros no banco de dados.
+
+### Executar os testes
+
+Na raiz do projeto, execute:
+
+```bash
+python manage.py test weather
+```
+
+O Django cria um banco de dados exclusivo para os testes, executa os cenários e o remove ao finalizar.
+
+### Cenários testados
+
+| Teste                             | Resultado esperado           |
+| --------------------------------- | ---------------------------- |
+| Coleta meteorológica bem-sucedida | HTTP 201 Created             |
+| Cidade não encontrada             | HTTP 404 Not Found           |
+| Serviço externo indisponível      | HTTP 503 Service Unavailable |
+| Listagem de registros             | HTTP 200 OK                  |
+| Filtro de registros por cidade    | HTTP 200 OK                  |
+
+### Simulação de serviços externos
+
+A integração com a OpenWeather é simulada utilizando `unittest.mock.patch`, permitindo testar os diferentes cenários sem realizar chamadas reais à API externa.
+
+Os testes também verificam se os registros são persistidos corretamente no banco de dados de teste.
+
 ### Listar registros meteorológicos
 
 **Método:** `GET`
@@ -276,10 +308,10 @@ Em desenvolvimento.
 - Endpoint GET para listagem e filtro por cidade.
 - Endpoint POST para coleta e armazenamento de dados.
 - Validação e persistência utilizando Django REST Framework.
+- Testes automatizados dos endpoints e integração externa.
 
 ### Próximas etapas
 
-- Implementação de testes automatizados.
 - Configuração da documentação Swagger/OpenAPI.
 - Containerização da aplicação Django.
 - Finalização das instruções de execução.
