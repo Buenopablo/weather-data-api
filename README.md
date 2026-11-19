@@ -233,7 +233,7 @@ O Django cria um banco de dados exclusivo para os testes, executa os cenários e
 ### 1. Clonar o repositório
 
 ```bash
-git clone <URL_DO_REPOSITORIO>
+git clone https://github.com/Buenopablo/weather-data-api.git
 cd weather-data-api
 ```
 
@@ -265,6 +265,8 @@ Substitua os valores de exemplo pelas suas configurações.
 
 **Importante:** o arquivo `.env` contém informações sensíveis e não deve ser versionado no Git.
 
+Durante a execução com Docker Compose, as variáveis `DB_HOST` e `DB_PORT` do serviço Django são sobrescritas para utilizar o endereço interno do PostgreSQL (`db:5432`). Os valores `localhost:5434` são utilizados para conexões externas, como pelo pgAdmin.
+
 ### 3. Construir e iniciar os containers
 
 Na raiz do projeto, execute:
@@ -280,27 +282,17 @@ O Docker Compose será responsável por construir a imagem da aplicação Django
 
 O serviço Django aguarda a inicialização saudável do PostgreSQL antes de iniciar.
 
-### 4. Habilitar a extensão Unaccent
+### 4. Executar as migrations
 
-A aplicação utiliza a extensão `unaccent` do PostgreSQL para realizar buscas sem distinção de acentos.
-
-Execute o comando:
-
-```bash
-docker compose exec db psql -U weather_user -d weather_db -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
-```
-
-A extensão deve estar habilitada no banco utilizado pela aplicação.
-
-### 5. Executar as migrations
-
-Para criar as tabelas necessárias no banco de dados:
+Para criar as tabelas e habilitar as extensões necessárias no banco de dados, execute:
 
 ```bash
 docker compose exec web python manage.py migrate
 ```
 
-### 6. Verificar os containers
+As migrations do Django configuram automaticamente a estrutura do banco de dados, incluindo a extensão `unaccent`, utilizada nas consultas por cidade.
+
+### 5. Verificar os containers
 
 ```bash
 docker compose ps
@@ -318,7 +310,7 @@ Para consultar os logs do banco:
 docker compose logs db
 ```
 
-### 7. Acessar a aplicação
+### 6. Acessar a aplicação
 
 Após iniciar os serviços, a API estará disponível em:
 
@@ -326,7 +318,7 @@ Após iniciar os serviços, a API estará disponível em:
 - Swagger UI: `http://localhost:8000/api/docs/`
 - OpenAPI Schema: `http://localhost:8000/api/schema/`
 
-### 8. Executar os testes
+### 7. Executar os testes
 
 Com os containers em execução:
 
@@ -336,7 +328,7 @@ docker compose exec web python manage.py test weather
 
 O Django executará os testes utilizando um banco de dados exclusivo para essa finalidade.
 
-### 9. Parar os containers
+### 8. Parar os containers
 
 Para parar os serviços:
 
